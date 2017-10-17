@@ -16,4 +16,4 @@ script:
     - cat stats.txt
     - grep 'Colors:' stats.txt > colors.txt
     - cat colors.txt
-    - grep -q 'Colors: 1' colors.txt
+    - grep 'Colors: 1' colors.txt
