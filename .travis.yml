@@ -15,4 +15,4 @@ script:
     - identify -verbose -features 1 -unique screenshot.png
     - identify -verbose -features 1 -unique screenshot.png | grep -A 1 Histogram > histogram.txt
     - cat histogram.txt
-    - grep -q "(255,255,255,255) #FFFFFF white" histogram.txt
+    - grep -q '(255,255,255,255) #FFFFFF white' histogram.txt
