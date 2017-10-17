@@ -7,6 +7,9 @@ addons:
   apt:
     packages:
       - imagemagick
+      - python
+before_script:
+    - python -m SimpleHTTPServer 8000 &
 script:
-    - google-chrome-stable --headless --disable-gpu --hide-scrollbars --screenshot --window-size=1280,1696 https://www.chromestatus.com/
+    - google-chrome-stable --headless --disable-gpu --hide-scrollbars --screenshot --window-size=1280,1696 http://localhost:8000/index.html
     - identify -verbose -features 1 -unique screenshot.png
