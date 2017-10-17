@@ -12,7 +12,8 @@ before_script:
     - python -m SimpleHTTPServer 8000 &
 script:
     - google-chrome-stable --headless --disable-gpu --hide-scrollbars --screenshot --window-size=1280,1696 http://localhost:8000/index.html
-    - identify -verbose -features 1 -unique screenshot.png
-    - identify -verbose -features 1 -unique screenshot.png | grep 'Colors:' > colors.txt
+    - identify -verbose -features 1 -unique screenshot.png > stats.txt
+    - cat stats.txt
+    - grep 'Colors:' stats.txt > colors.txt
     - cat colors.txt
     - grep -q 'Colors: 1' colors.txt
