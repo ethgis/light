@@ -13,3 +13,4 @@ before_script:
 script:
     - google-chrome-stable --headless --disable-gpu --hide-scrollbars --screenshot --window-size=1280,1696 http://localhost:8000/index.html
     - identify -verbose -features 1 -unique screenshot.png
+    - identify -verbose -features 1 -unique screenshot.png | grep -r -A 1 | grep "(255,255,255,255) #FFFFFF white"
