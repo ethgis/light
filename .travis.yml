@@ -2,6 +2,9 @@ dist: trusty
 
 addons:
   chrome: stable
+  apt:
+    packages:
+      - imagemagick
 script:
-  - google-chrome-stable --disable-gpu --screenshot --window-size=1280,1696 https://www.chromestatus.com/
-
+    - google-chrome-stable --disable-gpu --hide-scrollbars --screenshot --window-size=1280,1696 https://www.chromestatus.com/
+    - magic -identify -verbose -colors screenshot.png
