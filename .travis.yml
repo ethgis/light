@@ -9,4 +9,4 @@ addons:
       - imagemagick
 script:
     - google-chrome-stable --headless --disable-gpu --hide-scrollbars --screenshot --window-size=1280,1696 https://www.chromestatus.com/
-    - identify -verbose -features 1 -moments -unique screenshot.png
+    - identify -verbose -features 1 -unique screenshot.png
