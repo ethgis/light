@@ -1,0 +1,7 @@
+dist: trusty
+
+addons:
+  chrome: stable
+script:
+  - google-chrome-stable --disable-gpu --screenshot --window-size=1280,1696 https://www.chromestatus.com/
+
