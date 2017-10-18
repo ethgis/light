@@ -1,233 +1,98 @@
+
 <!DOCTYPE html>
 <meta charset="utf-8">
 <style>
 
+h1, h2 {
+  position: absolute;
+  top: 500px;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  text-align: center;
+  width: 960px;
+  text-transform: uppercase;
+  padding: 40px 30px 40px 30px;
+  line-height: 0.8em;
+  letter-spacing: 0.1em;
+  font-weight: 800;
+  font-size: 30px;
+  color: #FFF;
+  text-shadow: 0 0 50px #EEE, 0 0 20px #EEE, 0 0 0px #EEE;
+}
 </style>
-<body>
-
+<h1></h1>
 <script src="d3.v4.min.js"></script>
-<script src="geotiff.min.js"></script>
+<script src="d3-geo.v1.min.js"></script>
+<script src="queue.v1.min.js"></script>
 <script src="topojson.v1.min.js"></script>
-<script src="color-scale.js"></script>
-
 <script>
-var width = 800,
-    height = 600;
 
-var projection = d3.geoAzimuthalEqualArea()
-    .rotate([-38, -8])
-    .translate([width/2, height/2])
-    .scale(2000);
+var width = window.innerWidth || document.body.clientWidth,
+    height = window.innerHeight || document.body.clientHeight;
+
+var projection = d3.geoOrthographic()
+    .translate([width / 2, height / 2])
+    .scale(20000)
+    .clipAngle(90)
+    .precision(0.6);
 
 var canvas = d3.select("body").append("canvas")
     .attr("width", width)
     .attr("height", height);
 
-var context = canvas.node().getContext("2d");
-d3.request("ethpop.tiff")
-  .responseType('arraybuffer')
-  .get(function(error, tiffData){
-d3.json("ethtopo.json", function(error, topojsonData) {
-  var countries = topojson.feature(topojsonData, topojsonData.objects.ethiopia);
+var c = canvas.node().getContext("2d");
 
-  var path = d3.geoPath()
-      .projection(projection).context(context);
+var path = d3.geoPath()
+    .projection(projection)
+    .context(c);
 
-  var tiff = GeoTIFF.parse(tiffData.response);
-  var image = tiff.getImage();
-  var rasters = image.readRasters();
-  var tiepoint = image.getTiePoints()[0];
-  var pixelScale = image.getFileDirectory().ModelPixelScale;
-  var geoTransform = [tiepoint.x, pixelScale[0], 0, tiepoint.y, 0, -1*pixelScale[1]];
-  var invGeoTransform = [-geoTransform[0]/geoTransform[1], 1/geoTransform[1],0,-geoTransform[3]/geoTransform[5],0,1/geoTransform[5]];
+var title = d3.select("h1");
 
-  var altData = new Array(image.getHeight());
-  for (var j = 0; j<image.getHeight(); j++){
-      altData[j] = new Array(image.getWidth());
-      for (var i = 0; i<image.getWidth(); i++){
-          altData[j][i] = rasters[0][i + j*image.getWidth()];
-      }
-  }
+queue()
+    .defer(d3.json, "woreda.json")
+    .defer(d3.json, "world-110m.json")
+    .defer(d3.json, "existing_grid.json")
+    .await(ready);
 
-  //Calculate shaded Relief. Outside the first loop, to be able to put it in a function
-  var azimuth = 315;
-  var angleAltitude = 45;
-  var azimuthrad = azimuth*Math.PI / 180;
-  var altituderad = angleAltitude*Math.PI / 180;
+function ready(error, woreda, world, grid) {
+  if (error) throw error;
 
-  var shadedData = new Array(image.getHeight());
-  for (var j = 0; j<image.getHeight(); j++){
-    shadedData[j] = new Array(image.getWidth());
-    for (var i = 0; i<image.getWidth(); i++){
-      var gradX, gradY;
-      if(i==0) gradX = altData[j][i+1] - altData[j][i];
-      else if(i==image.getWidth()-1) gradX = altData[j][i] - altData[j][i-1];
-      else gradX = (altData[j][i+1] - altData[j][i])/2 + (altData[j][i] - altData[j][i-1])/2;
+  var globe = {type: "Sphere"},
+      land = topojson.feature(world, world.objects.land),
+      countries = topojson.feature(woreda, woreda.objects.woreda).features,
+      borders = topojson.feature(grid, grid.objects.grid),
+      i = -1,
+      n = countries.length;
 
-      if(j==0) gradY = altData[j+1][i] - altData[j][i];
-      else if(j==image.getHeight()-1) gradY = altData[j][i] - altData[j-1][i];
-      else gradY = (altData[j+1][i] - altData[j][i])/2 + (altData[j][i] - altData[j-1][i])/2;
+  countries = countries.sort(function(a, b) {
+          return a.properties.Pop2007 - b.properties.Pop2007;
+            });
 
-      var slope = Math.PI/2 - Math.atan(Math.sqrt(gradX*gradX + gradY*gradY));
-      var aspect = Math.atan2(-gradY, gradX);
+  (function transition() {
+    d3.transition()
+        .duration(1250)
+        .on("start", function() {
+          values = countries[i = (i + 1) % n].properties;
+          title.text(values.Pop2007 + ' people need power in ' +values.W_NAME);
+        })
+        .tween("rotate", function() {
+          var p = d3.geoCentroid(countries[i]),
+              r = d3.interpolate(projection.rotate(), [-p[0], -p[1]]);
+              r2 = d3.interpolate(projection.scale(), d3.geoBounds(countries[i]));
+          return function(t) {
+            projection.rotate(r(t));
+            c.clearRect(0, 0, width, height);
+            c.fillStyle = "#000000", c.beginPath(), path(land), c.fill();
+            c.strokeStyle = "#e0e0e0", c.beginPath(), path(countries[i]), c.stroke();
+            c.strokeStyle = "#fee090", c.lineWidth = 2, c.beginPath(), path(borders), c.stroke();
+            console.log(borders);
+            c.strokeStyle = "#4d4d4d", c.lineWidth = 5, c.beginPath(), path(globe), c.stroke();
+          };
+        })
+      .transition()
+        .on("end", transition);
+  })();
+}
 
-      shadedData[j][i] = Math.sin(altituderad) * Math.sin(slope)
-        + Math.cos(altituderad) * Math.cos(slope)
-        * Math.cos(azimuthrad - aspect);
-    }
-  }
+d3.select(self.frameElement).style("height", height + "px");
 
-  var canvasShaded = d3.select("body").append("canvas")
-      .attr("width", width)
-      .attr("height", height)
-      .style("display","none");
-
-  var contextShaded = canvasShaded.node().getContext("2d");
-
-  var idShaded = contextShaded.createImageData(width,height);
-  var dataShaded = idShaded.data;
-  var posShaded = 0;
-  for(var j = 0; j<height; j++){
-    for(var i = 0; i<width; i++){
-      var pointCoords = projection.invert([i,j]);
-      var px = invGeoTransform[0] + pointCoords[0]* invGeoTransform[1];
-      var py = invGeoTransform[3] + pointCoords[1] * invGeoTransform[5];
-
-      var shadedValue;
-      if(Math.floor(px) >= 0 && Math.ceil(px) < image.getWidth() && Math.floor(py) >= 0 && Math.ceil(py) < image.getHeight()){
-        shadedValue = 255*(1+shadedData[Math.floor(py)][Math.floor(px)])/2;
-
-      } else {
-        shadedValue = 255;
-      }
-      dataShaded[posShaded]   = shadedValue;
-      dataShaded[posShaded+1]   = shadedValue;
-      dataShaded[posShaded+2]   = shadedValue;
-      dataShaded[posShaded+3]   = 150;
-
-      posShaded=posShaded+4;
-    }
-  }
-
-  contextShaded.putImageData( idShaded, 0, 0);
-  var scaleValues = [{value: 0, color: "#f7f7f7"},
-  {value: 1250, color: "#d9d9d9"},
-  {value: 2500, color: "#bdbdbd"},
-  {value: 5000, color: "#969696"},
-  {value: 10000, color: "#737373"},
-  {value: 20000, color: "#525252"},
-  {value: 40000, color: "#252525"}];
-
-  var scale = d3.ColorScaleChooser()
-    .squareWidth(50)
-    .squareHeight(30)
-    .scaleValues(scaleValues)
-    .title("Population (m)")
-    .on("change", function(d, min, max){
-      var scaleWidth = 256;
-      d3.select("#colorScaleCanvas").remove();
-      var canvasColorScale = d3.select("body").append("canvas")
-          .attr("width", scaleWidth)
-          .attr("height", 1)
-          .attr("id", "colorScaleCanvas")
-          .style("display","none");
-      var contextColorScale = canvasColorScale.node().getContext("2d");
-      var gradient = contextColorScale.createLinearGradient(0, 0, scaleWidth, 1);
-
-      for (var i = 0; i < d.length; ++i) {
-        var position = (d[i].value-min)/(max-min);
-        if(position >= 0 && position < scaleWidth){
-          gradient.addColorStop(position, d[i].color);
-        }
-      }
-      contextColorScale.fillStyle = gradient;
-      contextColorScale.fillRect(0, 0, scaleWidth, 1);
-
-      var csImageData = contextColorScale.getImageData(0, 0, scaleWidth, 1).data;
-
-      draw(csImageData, min, max);
-    });
-
-  var svg = d3.select("body").append("svg")
-      .attr("width", 2048)
-      .attr("height", 1200)
-      .style("position", "absolute")
-      .style("left", "10px")
-      .style("top", "10px");
-  svg.call(scale);
-
-
-  function draw(csImageData, min, max){
-    context.drawImage(canvasShaded.node(), 0, 0);
-    context.globalAlpha = 0.7;
-    context.fillStyle = '#ffffff';
-    context.fillRect(0,0,width,height);
-    context.fill();
-    context.globalAlpha = 1;
-    var scaleWidth = csImageData.length/4;
-    var canvasRaster = d3.select("body").append("canvas")
-        .attr("width", width)
-        .attr("height", height)
-        .style("display","none");
-
-    var contextRaster = canvasRaster.node().getContext("2d");
-
-    var id = contextRaster.createImageData(width,height);
-    var data = id.data;
-    var pos = 0;
-    for(var j = 0; j<height; j++){
-      for(var i = 0; i<width; i++){
-        var pointCoords = projection.invert([i,j]);
-        var px = invGeoTransform[0] + pointCoords[0]* invGeoTransform[1];
-        var py = invGeoTransform[3] + pointCoords[1] * invGeoTransform[5];
-
-        var value;
-        if(Math.floor(px) >= 0 && Math.ceil(px) < image.getWidth() && Math.floor(py) >= 0 && Math.ceil(py) < image.getHeight()){
-          var dist1 = (Math.ceil(px)-px)*(Math.ceil(py)-py);
-          var dist2 = (px-Math.floor(px))*(Math.ceil(py)-py);
-          var dist3 = (Math.ceil(px)-px)*(py-Math.floor(py));
-          var dist4 = (px-Math.floor(px))*(py-Math.floor(py));
-          if (dist1 != 0 || dist2!=0 || dist3!=0 || dist4!=0){
-            value = altData[Math.floor(py)][Math.floor(px)]*dist1+
-            altData[Math.floor(py)][Math.ceil(px)]*dist2 +
-            altData[Math.ceil(py)][Math.floor(px)]*dist3 +
-            altData[Math.ceil(py)][Math.ceil(px)]*dist4;
-          } else {
-            value = altData[Math.floor(py)][Math.floor(px)];
-          }
-        } else {
-          value = -999;
-        }
-
-          var c = Math.round((scaleWidth-1) * ((value - min)/(max-min)));
-          var alpha = 200;
-          if(c<0) c=0;
-          if(c>=scaleWidth) c=scaleWidth-1;
-          data[pos]   = csImageData[c*4];;
-          data[pos+1]   = csImageData[c*4+1];
-          data[pos+2]   = csImageData[c*4+2];
-          data[pos+3]   = alpha;
-          pos = pos + 4
-
-      }
-    }
-    contextRaster.putImageData( id, 0, 0);
-    context.save();
-    context.beginPath();
-    path(countries);
-    context.clip();
-    context.drawImage(canvasShaded.node(), 0, 0);
-    context.drawImage(canvasRaster.node(), 0, 0);
-    context.restore();
-
-
-    context.beginPath();
-    context.strokeStyle = "#777";
-    path(countries);
-    context.stroke();
-  }
-
-});
-});
 </script>
-</body>
