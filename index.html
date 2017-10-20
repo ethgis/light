@@ -5,17 +5,17 @@
 
 h1, h2 {
   position: absolute;
-  top: 100px;
+  top: 50px;
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   text-align: center;
-  width: 960px;
+  width: 200px;
   text-transform: uppercase;
   padding: 40px 30px 40px 30px;
   line-height: 0.8em;
   letter-spacing: 0.1em;
   font-weight: 800;
-  font-size: 35px;
-  color: green;
+  font-size: 25px;
+  color: #FFF;
   text-shadow: 0 0 50px #EEE, 0 0 20px #EEE, 0 0 0px #EEE;
 }
 </style>
@@ -69,7 +69,7 @@ function ready(error, woreda, world, grid) {
 
   (function transition() {
     d3.transition()
-        .duration(1250)
+        .duration(250)
         .on("start", function() {
           values = countries[i = (i + 1) % n].properties;
           title.text(values.Pop2007 + ' people need power in ' +values.W_NAME);
@@ -83,7 +83,7 @@ function ready(error, woreda, world, grid) {
             c.clearRect(0, 0, width, height);
             c.fillStyle = "#000000", c.beginPath(), path(land), c.fill();
             c.strokeStyle = "#e0e0e0", c.beginPath(), path(countries[i]), c.stroke();
-            c.strokeStyle = "yellow", c.lineWidth = 2, c.beginPath(), path(borders), c.stroke();
+            c.strokeStyle = "#fee090", c.lineWidth = 2, c.beginPath(), path(borders), c.stroke();
             console.log(borders);
             c.strokeStyle = "#4d4d4d", c.lineWidth = 5, c.beginPath(), path(globe), c.stroke();
           };
