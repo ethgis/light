@@ -1,0 +1,121 @@
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+.woreda {
+  fill: none;
+}
+
+.country {
+  fill: none;
+  stroke: #fff;
+  stroke-linejoin: round;
+}
+
+h1, h2 {
+  position: absolute;
+  top: 100px;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  text-align: center;
+  width: 960px;
+  text-transform: uppercase;
+  padding: 40px 30px 40px 30px;
+  line-height: 0.8em;
+  letter-spacing: 0.1em;
+  font-weight: 800;
+  font-size: 35px;
+  color: green;
+  text-shadow: 0 0 50px #EEE, 0 0 20px #EEE, 0 0 0px #EEE;
+}
+</style>
+<svg width="800" height="600"></svg>
+<script src="d3.v4.min.js"></script>
+<script src="d3-geo.v1.min.js"></script>
+<script src="queue.v1.min.js"></script>
+<script src="topojson.v2.min.js"></script>
+<script src="d3-scale-chromatic.v1.min.js"></script>
+<script>
+
+var svg = d3.select("svg"),
+    width = +svg.attr("width"),
+    height = +svg.attr("height");
+
+var projection = d3.geoOrthographic()
+    .rotate([-38, -8])
+    .translate([width/2, height/2])
+    .scale(2000);
+
+var x = d3.scalePow()
+    .domain([0, 1000000])
+    .rangeRound([400, 40000000])
+    .clamp(true);
+
+var color = d3.scaleThreshold()
+    .domain(d3.range(2, 10))
+    .range(d3.schemeBlues[9]);
+
+console.log(x(20000));
+
+var g = svg.append("g")
+    .attr("class", "key")
+    .attr("transform", "translate(0,40)");
+
+g.selectAll("rect")
+  .data(color.range().map(function(d) {
+      d = color.invertExtent(d);
+      if (d[0] == null) d[0] = x.domain()[0];
+      if (d[1] == null) d[1] = x.domain()[1];
+      return d;
+    }))
+  .enter().append("rect")
+    .attr("height", 8)
+    .attr("x", function(d) { return x(d[0]); })
+    .attr("width", function(d) { return x(d[1]) - x(d[0]); })
+    .attr("fill", function(d) { return color(d[0]); });
+
+g.append("text")
+    .attr("class", "caption")
+    .attr("x", x.range()[0])
+    .attr("y", -6)
+    .attr("fill", "#000")
+    .attr("text-anchor", "start")
+    .attr("font-weight", "bold")
+    .text("Population");
+
+g.call(d3.axisBottom(x)
+    .tickSize(13)
+    .tickFormat(function(x, i) { return i ? x : x; })
+    .tickValues(color.domain()))
+  .select(".domain")
+    .remove();
+
+var path = d3.geoPath()
+    .projection(projection)
+
+queue()
+    .defer(d3.json, "woreda.json")
+    .defer(d3.json, "ethtopo.json")
+    .await(ready);
+
+function ready(error, woreda, ethiopia) {
+  if (error) throw error;
+
+  var woredas = topojson.feature(woreda, woreda.objects.woreda).features;
+
+  svg.append("g")
+      .attr("class", "woreda")
+    .selectAll("path")
+    .data(woredas)
+    .enter().append("path")
+      .attr("fill", function(d) { return color(d.properties.Pop2007/20000); })
+      .attr("d", path)
+    .append("title")
+      .text(function(d) { return d.properties.Pop2007; });
+
+  svg.append("path")
+      .datum(topojson.mesh(ethiopia, ethiopia.objects.ethiopia, function(a, b) { return a !== b; }))
+      .attr("class", "country")
+      .attr("d", path);
+}
+
+</script>
