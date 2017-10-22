@@ -47,14 +47,13 @@ var projection = d3.geoOrthographic()
 
 var x = d3.scalePow()
     .domain([0, 1000000])
-    .rangeRound([400, 40000000])
+    .rangeRound([400, 2000])
     .clamp(true);
 
 var color = d3.scaleThreshold()
-    .domain(d3.range(2, 10))
+    .domain(d3.range(25000, 250000, 25000))
     .range(d3.schemeBlues[9]);
 
-console.log(x(20000));
 
 var g = svg.append("g")
     .attr("class", "key")
@@ -107,7 +106,7 @@ function ready(error, woreda, ethiopia) {
     .selectAll("path")
     .data(woredas)
     .enter().append("path")
-      .attr("fill", function(d) { return color(d.properties.Pop2007/20000); })
+      .attr("fill", function(d) { return color(d.properties.Pop2007); })
       .attr("d", path)
     .append("title")
       .text(function(d) { return d.properties.Pop2007; });

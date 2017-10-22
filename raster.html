@@ -14,7 +14,7 @@
 var width = 800,
     height = 600;
 
-var projection = d3.geoAzimuthalEqualArea()
+var projection = d3.geoGnomonic()
     .rotate([-38, -8])
     .translate([width/2, height/2])
     .scale(2000);
