@@ -1,0 +1,6 @@
+
+Extract woreda and population information onto a TSV file.
+
+cat woreda.json | jq -r ' .. | select( has("properties") )? | [.properties.W_CODE, .properties.Pop2007] | @tsv' >> woreda_population.tsv
+
+

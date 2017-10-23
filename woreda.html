@@ -40,6 +40,8 @@ var svg = d3.select("svg"),
     width = +svg.attr("width"),
     height = +svg.attr("height");
 
+var population = d3.map();
+
 var projection = d3.geoOrthographic()
     .rotate([-38, -8])
     .translate([width/2, height/2])
@@ -94,6 +96,7 @@ var path = d3.geoPath()
 queue()
     .defer(d3.json, "woreda.json")
     .defer(d3.json, "ethtopo.json")
+    .defer(d3.tsv, "population.tsv", function(d) { population.set(d.id, +d.rate); })
     .await(ready);
 
 function ready(error, woreda, ethiopia) {
@@ -106,10 +109,10 @@ function ready(error, woreda, ethiopia) {
     .selectAll("path")
     .data(woredas)
     .enter().append("path")
-      .attr("fill", function(d) { return color(d.properties.Pop2007); })
+      .attr("fill", function(d) { return color(d.rate = population.get(d.     properties.W_CODE)); })
       .attr("d", path)
     .append("title")
-      .text(function(d) { return d.properties.Pop2007; });
+      .text(function(d) { return d.rate; });
 
   svg.append("path")
       .datum(topojson.mesh(ethiopia, ethiopia.objects.ethiopia, function(a, b) { return a !== b; }))
